@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Bos</string>
+    <string name="app_service">Bos Service</string>
+    <string name="app_receiver">Bos Receiver</string>
+    <string name="app_service_dialog_content">This app need to be granted by access notification system. Do you want to continue it?</string>
+    <string name="app_yes_button_label">Yes</string>
+    <string name="app_no_button_label">No</string>
+</resources>
