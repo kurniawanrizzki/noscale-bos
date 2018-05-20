@@ -15,7 +15,6 @@ import com.noscale.bos.utils.tools.AlertBuilder;
 /**
  * Created by kurniawanrizzki on 20/05/18.
  */
-
 public class MainController extends BaseController {
 
     public static final String TAG = "MainController";
@@ -41,6 +40,7 @@ public class MainController extends BaseController {
         if (!isNotificationServiceAllowed()) {
             notificationDialogBuilder.show();
         }
+
     }
 
     private AlertBuilder getNotificationDialogBuilder () {

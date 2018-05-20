@@ -3,6 +3,9 @@
     package="com.noscale.bos">
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 
     <application
         android:allowBackup="true"
@@ -27,15 +30,11 @@
                 <action android:name="android.service.notification.NotificationListenerService"/>
             </intent-filter>
         </service>
-        <receiver
-            android:name=".utils.receivers.ScheduleReceiver"
-            android:label="@string/app_receiver"
-            >
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED"/>
-                <action android:name="com.noscale.bos.receivers.schedule"/>
-            </intent-filter>
-        </receiver>
+        <!--<service android:name=".utils.services.ScheduleService"-->
+            <!--android:label="@string/app_receiver"-->
+            <!--android:enabled="true"-->
+            <!--android:exported="true"-->
+            <!--/>-->
     </application>
 
 </manifest>

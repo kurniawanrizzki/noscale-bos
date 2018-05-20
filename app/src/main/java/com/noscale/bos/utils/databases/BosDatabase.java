@@ -16,11 +16,11 @@ public class BosDatabase extends Instance {
 
     public BosDatabase(Context context, String tag) {
         super(context, tag);
-        database = context.openOrCreateDatabase(Database.DATABASE_NAME_CONFIG, Database.DATABASE_MODE_CONFIG, null);
     }
 
     @Override
     public void setup() {
+        database = context.openOrCreateDatabase(Database.DATABASE_NAME_CONFIG, Database.DATABASE_MODE_CONFIG, null);
         requestMessageTable = new RequestMessageTable();
         requestMessageTable.setDatabase(database);
     }

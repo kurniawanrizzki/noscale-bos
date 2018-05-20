@@ -28,7 +28,7 @@ public class RequestMessageTable extends Database {
     protected void createTable() {
         String query = buildTableCreationQuery(
                 TABLE_NAME,
-                new String[]{COLUMN_ID, "integer primary autoincrement"},
+                new String[]{COLUMN_ID, "integer primary key autoincrement"},
                 new String[]{COLUMN_SRC, "text not null"},
                 new String[]{COLUMN_CONTENT, "text not null"},
                 new String[]{COLUMN_STATUS, "integer default "+ RequestMessage.Status.WAITING},
@@ -80,13 +80,13 @@ public class RequestMessageTable extends Database {
                 new String[]{String.valueOf(RequestMessage.Status.WAITING)},
                 null,
                 null,
-                COLUMN_ID+" DESC"
+                COLUMN_ID+" DESC",
+                String.valueOf(limit)
         );
 
-        if (cursor.getCount() > 0) {
+        if ((null != cursor) && (cursor.getCount() > 0)) {
             messageRequestScheduledData = new ArrayList<>();
-            cursor.moveToFirst();
-            while (!cursor.isAfterLast()) {
+            while (cursor.moveToNext()) {
                 RequestMessage message = (RequestMessage) cursorToObject(cursor);
                 messageRequestScheduledData.add(message);
             }

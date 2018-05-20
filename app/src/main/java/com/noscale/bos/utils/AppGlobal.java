@@ -1,5 +1,6 @@
 package com.noscale.bos.utils;
 
+import android.Manifest;
 import android.os.Environment;
 import com.noscale.bos.controllers.BaseController;
 import java.util.HashMap;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 
 public class AppGlobal {
 
+    public static boolean isScheduleRunning;
     public static final HashMap<String, BaseController> controllerMap = new HashMap<>();
 
     public static final String FILE_LOG_DIR = Environment.getExternalStorageDirectory()+"/bos";
@@ -33,4 +35,9 @@ public class AppGlobal {
         int ID = 0;
         int EN = 1;
     }
+
+    public static final String[] FILE_PERMISSION = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
 }

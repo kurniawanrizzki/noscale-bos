@@ -1,12 +1,10 @@
 package com.noscale.bos.utils.managers;
 
 import android.content.Context;
-
 import com.noscale.bos.utils.Instance;
 import com.noscale.bos.utils.Manager;
 import com.noscale.bos.utils.databases.BosDatabase;
 import com.noscale.bos.utils.loggers.BosLogger;
-import com.noscale.bos.utils.permissions.BosPermission;
 import com.noscale.bos.utils.preferences.BosPreference;
 
 /**
@@ -19,7 +17,6 @@ public class InstanceManager extends Manager {
     private BosDatabase database;
     private BosPreference preference;
     private BosLogger logger;
-    private BosPermission permission;
 
     public static InstanceManager getInstanceManager (Context context) {
         if (null == instanceManager) {
@@ -35,9 +32,6 @@ public class InstanceManager extends Manager {
         if (null == database) {
             database = new BosDatabase(context, Instance.DB_INSTANCE);
         }
-        if (null == permission) {
-            permission = new BosPermission(context, Instance.PERMISSION_INSTANCE);
-        }
         if (null == preference) {
             preference = new BosPreference(context, Instance.PREFERENCE_INSTANCE);
         }
@@ -52,8 +46,6 @@ public class InstanceManager extends Manager {
             return database;
         } else if (tag.equals(Instance.LOGGER_INSTANCE)) {
             return logger;
-        } else if (tag.equals(Instance.PERMISSION_INSTANCE)) {
-            return permission;
         } else if (tag.equals(Instance.PREFERENCE_INSTANCE)) {
             return preference;
         }

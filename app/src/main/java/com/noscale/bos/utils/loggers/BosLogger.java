@@ -1,15 +1,11 @@
 package com.noscale.bos.utils.loggers;
 
-import android.Manifest;
 import android.content.Context;
 import android.os.Build;
 import android.util.Log;
-
 import com.noscale.bos.utils.AppGlobal;
 import com.noscale.bos.utils.Instance;
-import com.noscale.bos.utils.managers.InstanceManager;
-import com.noscale.bos.utils.permissions.BosPermission;
-
+import com.noscale.bos.utils.tools.Utility;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -17,6 +13,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -25,11 +22,9 @@ import java.util.Locale;
 
 public class BosLogger extends Instance implements Logger {
 
+    private static final String LOG_PREFIX = getLogPrefix(BosLogger.class);
     private Writer fileWriter;
-    private String[] filePermissions = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
+    private boolean isPermissionGranted;
 
     public BosLogger(Context context, String tag) {
         super(context, tag);
@@ -39,17 +34,12 @@ public class BosLogger extends Instance implements Logger {
     public void setup() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            try {
-
-                BosPermission permission = (BosPermission) InstanceManager.getInstanceManager(context).get(Instance.PERMISSION_INSTANCE);
-                String[] deniedPermissionList = permission.getDeniedPermissionList(filePermissions);
-                if (deniedPermissionList.length > 0) {
-                    return;
-                }
-
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+            List<String> deniedPermissionList = Utility.getDeniedPermissionList(context, AppGlobal.FILE_PERMISSION);
+            if (deniedPermissionList.size() > 0) {
+                warning(LOG_PREFIX, "The log is not able to write in the file, cause of permission not granted");
+                return;
             }
+            isPermissionGranted = true;
         }
 
         File logFile;
@@ -58,7 +48,7 @@ public class BosLogger extends Instance implements Logger {
             dir.mkdir();
         }
 
-        logFile = new File(dir.getPath());
+        logFile = new File(dir.getPath()+"/"+AppGlobal.FILE_LOG_NAME);
 
         try {
 
@@ -112,22 +102,18 @@ public class BosLogger extends Instance implements Logger {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             Calendar cal = Calendar.getInstance(Locale.getDefault());
 
-            if (null != fileWriter) {
-                String time_str = dateFormat.format(cal.getTime());
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    try {
-
-                        BosPermission permission = (BosPermission) InstanceManager.getInstanceManager(context).get(Instance.PERMISSION_INSTANCE);
-                        String[] deniedPermissionList = permission.getDeniedPermissionList(filePermissions);
-                        if (deniedPermissionList.length > 0) {
-                            return;
-                        }
-
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                List<String> deniedPermissionList = Utility.getDeniedPermissionList(context, AppGlobal.FILE_PERMISSION);
+                if (deniedPermissionList.size() > 0) {
+                    isPermissionGranted = false;
+                    warning(LOG_PREFIX, "The log is not able to write in in the file, permission not granted");
+                    return;
                 }
+                isPermissionGranted = true;
+            }
+
+            if (null != fileWriter && isPermissionGranted) {
+                String time_str = dateFormat.format(cal.getTime());
 
                 fileWriter.append("[" + time_str + "]["+level+"] "+ title +" "+content+"\n");
                 fileWriter.flush();
