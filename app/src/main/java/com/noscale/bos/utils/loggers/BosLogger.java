@@ -33,35 +33,39 @@ public class BosLogger extends Instance implements Logger {
     @Override
     public void setup() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            List<String> deniedPermissionList = Utility.getDeniedPermissionList(context, AppGlobal.FILE_PERMISSION);
-            if (deniedPermissionList.size() > 0) {
-                warning(LOG_PREFIX, "The log is not able to write in the file, cause of permission not granted");
-                return;
-            }
-            isPermissionGranted = true;
-        }
+        if (AppGlobal.IS_FILE_LOGGED_VERSION) {
 
-        File logFile;
-        File dir = new File(AppGlobal.FILE_LOG_DIR);
-        if (!dir.exists() || !dir.isDirectory()) {
-            dir.mkdir();
-        }
-
-        logFile = new File(dir.getPath()+"/"+AppGlobal.FILE_LOG_NAME);
-
-        try {
-
-            if (!logFile.exists() || !logFile.isFile()) {
-                logFile.createNewFile();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                List<String> deniedPermissionList = Utility.getDeniedPermissionList(context, AppGlobal.FILE_PERMISSION);
+                if (deniedPermissionList.size() > 0) {
+                    warning(LOG_PREFIX, "The log is not able to write in the file, cause of permission not granted");
+                    return;
+                }
+                isPermissionGranted = true;
             }
 
-            fileWriter = new BufferedWriter(
-                    new FileWriter(logFile)
-            );
+            File logFile;
+            File dir = new File(AppGlobal.FILE_LOG_DIR);
+            if (!dir.exists() || !dir.isDirectory()) {
+                dir.mkdir();
+            }
 
-        } catch (IOException ioe) {
-            ioe.printStackTrace();
+            logFile = new File(dir.getPath()+"/"+AppGlobal.FILE_LOG_NAME);
+
+            try {
+
+                if (!logFile.exists() || !logFile.isFile()) {
+                    logFile.createNewFile();
+                }
+
+                fileWriter = new BufferedWriter(
+                        new FileWriter(logFile)
+                );
+
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+
         }
 
     }
@@ -102,21 +106,23 @@ public class BosLogger extends Instance implements Logger {
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
             Calendar cal = Calendar.getInstance(Locale.getDefault());
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                List<String> deniedPermissionList = Utility.getDeniedPermissionList(context, AppGlobal.FILE_PERMISSION);
-                if (deniedPermissionList.size() > 0) {
-                    isPermissionGranted = false;
-                    warning(LOG_PREFIX, "The log is not able to write in in the file, permission not granted");
-                    return;
+            if (AppGlobal.IS_FILE_LOGGED_VERSION) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    List<String> deniedPermissionList = Utility.getDeniedPermissionList(context, AppGlobal.FILE_PERMISSION);
+                    if (deniedPermissionList.size() > 0) {
+                        isPermissionGranted = false;
+                        warning(LOG_PREFIX, "The log is not able to write in in the file, permission not granted");
+                        return;
+                    }
+                    isPermissionGranted = true;
                 }
-                isPermissionGranted = true;
-            }
 
-            if (null != fileWriter && isPermissionGranted) {
-                String time_str = dateFormat.format(cal.getTime());
+                if (null != fileWriter && isPermissionGranted) {
+                    String time_str = dateFormat.format(cal.getTime());
 
-                fileWriter.append("[" + time_str + "]["+level+"] "+ title +" "+content+"\n");
-                fileWriter.flush();
+                    fileWriter.append("[" + time_str + "]["+level+"] "+ title +" "+content+"\n");
+                    fileWriter.flush();
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -125,7 +131,7 @@ public class BosLogger extends Instance implements Logger {
     }
 
     public static String getLogPrefix (Class<?> className) {
-        String LOG_PREFIX_IDENTIFIER = "noscalebos_";
+        String LOG_PREFIX_IDENTIFIER = "bos_";
         String name = className.getName();
         final int maxLength = 23 - LOG_PREFIX_IDENTIFIER.length();
         if (name.length() > maxLength) {

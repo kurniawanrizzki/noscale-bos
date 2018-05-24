@@ -4,20 +4,24 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import com.google.gson.Gson;
 import com.noscale.bos.controllers.MainController;
 import com.noscale.bos.controllers.MessageController;
 import com.noscale.bos.models.RequestMessage;
-import com.noscale.bos.models.ResponseMessage;
+import com.noscale.bos.models.HttpMessage;
 import com.noscale.bos.utils.AppGlobal;
 import com.noscale.bos.utils.Instance;
 import com.noscale.bos.utils.databases.BosDatabase;
+import com.noscale.bos.utils.loggers.BosLogger;
 import com.noscale.bos.utils.managers.InstanceManager;
 import com.noscale.bos.utils.preferences.Configuration;
 import com.noscale.bos.utils.tools.APIInterface;
 import com.noscale.bos.utils.tools.Utility;
 
+import java.util.Arrays;
 import java.util.List;
-
+import okhttp3.RequestBody;
+import okio.Buffer;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -28,7 +32,9 @@ import retrofit2.Response;
 
 public class ScheduleReceiver extends BroadcastReceiver {
 
-    private APIInterface anInterface;
+    private BosLogger LOGGER;
+    private BosDatabase database;
+    private static final String TAG = BosLogger.getLogPrefix(ScheduleReceiver.class);
 
     public static final int REQUEST_ID = 22;
     public static final String ACTION = "com.noscale.bos.utils.receivers.ScheduleReceiver";
@@ -39,70 +45,111 @@ public class ScheduleReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        anInterface = Utility.getClient().create(APIInterface.class);
+        try {
 
-        Bundle bundle = intent.getBundleExtra(NEW_SCHEDULE_BUNDLE);
-        String subject = bundle.getString(Intent.EXTRA_SUBJECT);
+            LOGGER = (BosLogger) InstanceManager.getInstanceManager(context).get(Instance.LOGGER_INSTANCE);
+            database = ((BosDatabase) InstanceManager.getInstanceManager(context).get(Instance.DB_INSTANCE));
 
-        if (null != subject && subject.equals(NEW_SCHEDULE_SUBJECT)) {
-            MessageController controller = (MessageController) AppGlobal.controllerMap.get(MessageController.TAG);
+            String URL = Configuration.configurationMap.get(Configuration.USED_BASE_URL)+":"+Configuration.configurationMap.get(Configuration.USED_PORT);
+            APIInterface anInterface = Utility.getClient(URL).create(APIInterface.class);
 
-            if (null == controller) {
-                controller = (MessageController) new MessageController(context).setTag(MainController.TAG);
-            }
+            Bundle bundle = intent.getBundleExtra(NEW_SCHEDULE_BUNDLE);
+            String subject = bundle.getString(Intent.EXTRA_SUBJECT);
 
-            List<RequestMessage> requestMessagesExtra = bundle.getParcelableArrayList(MESSAGES_SCHEDULE_DATA);
+            if (null != subject && subject.equals(NEW_SCHEDULE_SUBJECT)) {
+                final MessageController controller = (MessageController) AppGlobal.controllerMap.get(MessageController.TAG);
 
-            if (null != requestMessagesExtra) {
-                for (final RequestMessage requestMessage:requestMessagesExtra) {
-                    //change the token with registered IMEI;
-                    Call<ResponseMessage> responseMessageCall = anInterface.sendingRequestMessage(
-                            requestMessage.getSrc(), "093f8b8afbe3", requestMessage.getContent()
-                    );
+                List<RequestMessage> requestMessagesExtra = bundle.getParcelableArrayList(MESSAGES_SCHEDULE_DATA);
 
-                    final MessageController finalController = controller;
-                    responseMessageCall.enqueue(new Callback<ResponseMessage>() {
-                        @Override
-                        public void onResponse(Call<ResponseMessage> call, Response<ResponseMessage> response) {
-                            final ResponseMessage responseMessage = response.body();
-                            finalController.setResponseListener(new MessageController.ResponseListener() {
-                                @Override
-                                public void onResponse() {
-                                    finalController.sendMessage(
-                                            requestMessage,
-                                            responseMessage,
-                                            ResponseMessage.Status.SUCCESS_STATUS
+                if (null != requestMessagesExtra) {
+                    for (RequestMessage requestMessage:requestMessagesExtra) {
+
+                        //change the token with registered IMEI;
+                        Call<HttpMessage.Response> responseMessageCall = anInterface.sendingRequestMessage(
+                                new HttpMessage()
+                                        .new Request(
+                                        "093f8b8afbe3",
+                                        requestMessage.getSrc(),
+                                        requestMessage.getContent(),
+                                        requestMessage.getId(),
+                                        requestMessage.getLastAttempt()
+                                )
+                        );
+
+                        database.getRequestMessageTable().updateRequestMessage(
+                                requestMessage.getStatus(),
+                                RequestMessage.Status.QUEUE,
+                                requestMessage.getId()
+                        );
+
+                        responseMessageCall.enqueue(new Callback<HttpMessage.Response>() {
+                            @Override
+                            public void onResponse(Call<HttpMessage.Response> call, final Response<HttpMessage.Response> response) {
+
+                                final HttpMessage.Response responseBody = response.body();
+                                final HttpMessage.Request requestBody = Utility.getRequestBody(call.request().body());
+
+                                if (null != requestBody) {
+                                    controller.sendMessage(
+                                            requestBody.id,
+                                            requestBody.phone,
+                                            responseBody.message
                                     );
+                                    LOGGER.debug(TAG, "onResponse : "+requestBody.toString()+" "+responseBody.toString());
+                                    return;
                                 }
-                            });
-                        }
 
-                        @Override
-                        public void onFailure(Call<ResponseMessage> call, Throwable t) {
-                            finalController.setResponseListener(new MessageController.ResponseListener() {
-                                @Override
-                                public void onResponse() {
-                                    finalController.sendMessage(
-                                            requestMessage,
-                                            ResponseMessage.Status.FAILED_STATUS
+                                LOGGER.error(TAG, "doesn't get a request body, message is not able to forwarded");
+
+                            }
+
+                            @Override
+                            public void onFailure(Call<HttpMessage.Response> call, Throwable t) {
+
+                                HttpMessage.Request requestBody = Utility.getRequestBody(call.request().body());
+                                database.getRequestMessageTable().updateRequestMessage(
+                                        requestBody.lastAttempt,
+                                        RequestMessage.Status.WAITING,
+                                        requestBody.id
+                                );
+
+                                LOGGER.info(TAG, "onFailure : "+t.getMessage()+" "+t.getCause());
+
+                                if (null != requestBody) {
+                                    int lastAttempt = requestBody.lastAttempt + 1;
+                                    controller.sendMessage(
+                                            lastAttempt,
+                                            requestBody.id,
+                                            requestBody.phone
                                     );
+                                    LOGGER.debug(TAG, requestBody.toString());
+                                    return;
                                 }
-                            });
-                        }
-                    });
+
+                                LOGGER.error(TAG, "doesn't get a request body, message is not able to forwarded");
+
+                            }
+                        });
+                    }
                 }
-            }
 
-            try {
-                BosDatabase database = ((BosDatabase) InstanceManager.getInstanceManager(context).get(Instance.DB_INSTANCE));
                 int limit = (int) Configuration.configurationMap.get(Configuration.USED_QUERY_LIMIT_PER_INTERVAL_MESSAGE_FORWARDED);
                 List<RequestMessage> scheduledData = database.getRequestMessageTable().getMessageRequestScheduledData(limit);
                 controller.schedule(scheduledData);
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
+
+                if (null != scheduledData) {
+                    LOGGER.info(TAG, "Preparing Data in Next 10s : "+ Arrays.toString(scheduledData.toArray()));
+                    return;
+                }
+
+                LOGGER.info(TAG, "Preparing Data in Next 10s : null");
+
             }
 
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
     }
 
 }

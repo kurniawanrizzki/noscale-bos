@@ -5,4 +5,5 @@
     <string name="app_service_dialog_content">This app need to be granted by access notification system. Do you want to continue it?</string>
     <string name="app_yes_button_label">Yes</string>
     <string name="app_no_button_label">No</string>
+    <string name="app_failed_to_forwarded_label">Sorry, currently the server is unreachable, please to do order after the service up.</string>
 </resources>

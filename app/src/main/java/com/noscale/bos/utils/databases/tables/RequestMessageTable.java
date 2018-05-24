@@ -7,7 +7,9 @@ import com.noscale.bos.models.RequestMessage;
 import com.noscale.bos.utils.databases.Database;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Created by kurniawanrizzki on 21/05/18.
@@ -99,6 +101,36 @@ public class RequestMessageTable extends Database {
     @Override
     public long update(Object item, long id) {
         return 0;
+    }
+
+    private long updateRequestMessage (int lastAttempt, int status, long forwardedTime, long id) {
+
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_LAST_ATTEMPT, lastAttempt);
+        values.put(COLUMN_STATUS, status);
+        values.put(COLUMN_FORWARDED_TIME, forwardedTime);
+
+        return database.update(
+                TABLE_NAME, values,COLUMN_ID+" = ?", new String[]{String.valueOf(id)}
+        );
+    }
+
+    public long updateRequestMessage (long id) {
+        return updateRequestMessage(
+                0,
+                RequestMessage.Status.DELIVERED,
+                Calendar.getInstance(Locale.getDefault()).getTimeInMillis(),
+                id
+        );
+    }
+
+    public long updateRequestMessage (int lastAttempt, int status, long id) {
+        return updateRequestMessage(
+                lastAttempt,
+                status,
+                0,
+                id
+        );
     }
 
     @Override

@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import com.noscale.bos.utils.AppGlobal;
 import com.noscale.bos.utils.Instance;
+import com.noscale.bos.utils.databases.BosDatabase;
 import com.noscale.bos.utils.loggers.BosLogger;
 import com.noscale.bos.utils.managers.InstanceManager;
 
@@ -14,9 +15,10 @@ public abstract class BaseController {
 
     protected Activity activity;
     protected Context context;
+    protected BosLogger LOGGER;
+    protected BosDatabase database;
     private String tag;
 
-    BosLogger LOG;
 
     public BaseController (Activity activity, String tag) {
         this.activity = activity;
@@ -39,7 +41,8 @@ public abstract class BaseController {
 
     public void initData () {
         try {
-            LOG = (BosLogger) InstanceManager.getInstanceManager(activity).get(Instance.LOGGER_INSTANCE);
+            LOGGER = (BosLogger) InstanceManager.getInstanceManager(context).get(Instance.LOGGER_INSTANCE);
+            database = (BosDatabase) InstanceManager.getInstanceManager(context).get(Instance.DB_INSTANCE);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }

@@ -16,7 +16,8 @@ public class RequestMessage implements Parcelable {
     public interface Status {
         int UNDELIVERED = -1;
         int WAITING = 0;
-        int DELIVERED = 1;
+        int QUEUE = 1;
+        int DELIVERED = 2;
     }
 
     private long id;

@@ -20,6 +20,7 @@ public class AppGlobal {
 
     public static final String DEFAULT_USED_BASE_URL = "http://185.201.8.192";
     public static final int DEFAULT_USED_PORT = 3331;
+    public static final int MAX_ALLOWED_ATTEMPT = 3;
     public static final int DEFAULT_USED_LANGUAGE = Language.EN;
     public static final String DEFAULT_USED_IMEI = "";
     public static final boolean DEFAULT_IS_SERVICE_ENABLE = true;
